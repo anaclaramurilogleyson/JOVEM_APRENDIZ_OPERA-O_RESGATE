@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Caminhão Pega-Caixas</title>
+<style>
+  body { text-align: center; font-family: sans-serif; background: #223; color: white; }
+  canvas { background: #9ad; border: 3px solid white; touch-action: none; }
+</style>
+</head>
+<body>
+  <h2>🚚 Pegue as caixas! 📦</h2>
+  <p>Use as setas ← → (ou arraste o mouse/dedo) para mover o caminhão.</p>
+  <canvas id="tela" width="400" height="500"></canvas>
+
+<script>
+// ---------- 1. PREPARAÇÃO ----------
+// Pegamos o "quadro de desenho" (canvas) da página
+const tela = document.getElementById("tela");
+const desenho = tela.getContext("2d");
+
+// ---------- 2. VARIÁVEIS (guardam informações do jogo) ----------
+let caminhaoX = 175;   // posição do caminhão (esquerda/direita)
+const caminhaoY = 440; // altura do caminhão (fica fixa no chão)
+let pontos = 0;        // quantas caixas já pegamos
+let vidas = 3;         // quantas caixas ainda podemos deixar cair
+let caixas = [];       // lista de caixas que estão caindo
+let teclas = {};       // guarda quais teclas estão apertadas
+
+// ---------- 3. CONTROLES ----------
+// Quando uma tecla é apertada, anotamos "true"; quando solta, "false"
+document.addEventListener("keydown", e => teclas[e.key] = true);
+document.addEventListener("keyup",   e => teclas[e.key] = false);
+
+// Mouse ou dedo: o caminhão segue a posição do ponteiro
+tela.addEventListener("pointermove", e => {
+  const area = tela.getBoundingClientRect();
+  caminhaoX = e.clientX - area.left - 25; // 25 = metade do caminhão
+});
+
+// ---------- 4. CRIAR CAIXAS ----------
+function criarCaixa() {
+  caixas.push({
+    x: Math.random() * 360,     // posição horizontal aleatória
+    y: -40,                      // começa acima da tela
+    velocidade: 2 + Math.random() * 2 + pontos / 10  // fica mais rápido com os pontos
+  });
+}
+
+// ---------- 5. ATUALIZAR (muda as posições) ----------
+function atualizar() {
+  // Mover o caminhão com as setas
+  if (teclas["ArrowLeft"])  caminhaoX -= 6;
+  if (teclas["ArrowRight"]) caminhaoX += 6;
+
+  // Não deixar o caminhão sair da tela
+  caminhaoX = Math.max(0, Math.min(350, caminhaoX));
+
+  // De vez em quando, cria uma caixa nova (2% de chance a cada quadro)
+  if (Math.random() < 0.02) criarCaixa();
+
+  // Para cada caixa da lista...
+  for (let i = caixas.length - 1; i >= 0; i--) {
+    const c = caixas[i];
+    c.y += c.velocidade; // ...ela cai um pouquinho
+
+    // Pegou? (a caixa encostou no caminhão)
+    if (c.y > caminhaoY - 30 && c.y < caminhaoY + 30 &&
+        c.x > caminhaoX - 30 && c.x < caminhaoX + 40) {
+      pontos++;
+      caixas.splice(i, 1); // remove a caixa da lista
+    }
+    // Caiu no chão?
+    else if (c.y > 500) {
+      vidas--;
+      caixas.splice(i, 1);
+    }
+  }
+}
+
+// ---------- 6. DESENHAR ----------
+function desenhar() {
+  desenho.clearRect(0, 0, 400, 500); // limpa a tela
+  desenho.font = "40px sans-serif";
+
+  desenho.fillText("🚚", caminhaoX, caminhaoY + 30);        // caminhão
+  for (const c of caixas) desenho.fillText("📦", c.x, c.y); // caixas
+
+  desenho.font = "20px sans-serif";
+  desenho.fillText("Pontos: " + pontos + "   Vidas: " + "❤️".repeat(vidas), 10, 25);
+}
+
+// ---------- 7. LOOP DO JOGO ----------
+// Esta função se repete ~60 vezes por segundo
+function loop() {
+  if (vidas > 0) {
+    atualizar();
+    desenhar();
+    requestAnimationFrame(loop); // pede para repetir
+  } else {
+    // Fim de jogo
+    desenho.fillStyle = "rgba(0,0,0,0.7)";
+    desenho.fillRect(0, 0, 400, 500);
+    desenho.fillStyle = "white";
+    desenho.font = "36px sans-serif";
+    desenho.fillText("Fim de jogo!", 100, 230);
+    desenho.font = "22px sans-serif";
+    desenho.fillText("Você pegou " + pontos + " caixas", 105, 270);
+    desenho.fillText("Aperte F5 para jogar de novo", 80, 310);
+  }
+}
+
+loop(); // começa o jogo!
+</script>
+</body>
+</html>
